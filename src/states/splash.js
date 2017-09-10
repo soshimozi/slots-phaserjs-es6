@@ -15,6 +15,8 @@ export default class extends Phaser.State {
   init () {}
 
   preload () {
+    this.stage.backgroundColor = '#000000'
+
     this.loaderBg = this.add.sprite(this.game.world.centerX, this.game.world.centerY, 'loaderBg')
     this.loaderBar = this.add.sprite(this.game.world.centerX, this.game.world.centerY, 'loaderBar')
 
@@ -29,6 +31,9 @@ export default class extends Phaser.State {
     this.load.atlasJSONHash('animation-textures-atlas', AnimationTexturePng, AnimationTexttureJson)
 
     this.game.load.script('BlurY', 'https://cdn.rawgit.com/photonstorm/phaser/master/v2/filters/BlurY.js')
+
+    let text = this.add.text(this.world.centerX, this.world.centerY - 24, 'Loading Textures ...', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center'})
+    text.anchor.setTo(0.5, 0.5)
   }
 
   create () {

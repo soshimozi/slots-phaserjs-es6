@@ -9,6 +9,7 @@ const reelCount = 5
 
 export default class extends Phaser.State {
   init () {}
+
   preload () {}
 
   create () {
@@ -28,14 +29,14 @@ export default class extends Phaser.State {
       this.reels.push(reel)
     }
 
-    this.game.add.button(1100, 640, 'game_and_ui_atlas', () => { this.spin() }, this, 'ui/start_btn.png', 'ui/start_btn.png', 'ui/start_active_btn.png', 'ui/start_btn.png')
-
     this.buildUI()
+    this.selectedPaylines = 0
 
-    this.selectedPaylines = 3
+    this.paylineCounts = [1, 3, 5, 7, 9]
   }
 
   buildUI () {
+    this.addActionButtons()
     this.addPaylines()
     this.addLineIndicators()
     this.addPaylineIcons()
@@ -138,11 +139,78 @@ export default class extends Phaser.State {
     this.playlines.push(playline)
   }
 
+  addActionButtons () {
+    this.game.add.button(1100, 640, 'game_and_ui_atlas', () => { this.spin() }, this, 'ui/start_btn.png', 'ui/start_btn.png', 'ui/start_active_btn.png', 'ui/start_btn.png')
+    this.game.add.button(200, 720, 'game_and_ui_atlas', () => { this.incrementLines() }, this, 'ui/lines.png', 'ui/lines.png', 'ui/lines_active.png', 'ui/lines.png')
+    this.game.add.button(420, 720, 'game_and_ui_atlas', () => { this.incrementBet() }, this, 'ui/betone.png', 'ui/betone.png', 'ui/betone_active.png', 'ui/betone.png')
+    this.game.add.button(640, 720, 'game_and_ui_atlas', () => { this.betMax() }, this, 'ui/betmax.png', 'ui/betmax.png', 'ui/betmax_active.png', 'ui/betmax.png')
+    this.game.add.button(860, 720, 'game_and_ui_atlas', () => { this.doubleDown() }, this, 'ui/double.png', 'ui/double.png', 'ui/double_active.png', 'ui/double.png')
+  }
+
+  doubleDown () {}
+  incrementBet () {}
+  betMax () {}
+
   addPaylineIcons () {
     this.paylineIcons = []
 
-    let paylineIcon = new Indicator(this.game, 0, 0, 'game_and_ui_atlas', 'ui/1_lines_active.png', 'ui/1_lines.png')
-    this.paylineIcons.push(paylineIcon)
+    // let paylineIcon = new Indicator(this.game, 0, 0, 'game_and_ui_atlas', 'ui/1_lines_active.png', 'ui/1_lines.png')
+    // this.game.add.existing(paylineIcon)
+    // this.paylineIcons.push(paylineIcon)
+
+    // paylineIcon.setActive(true)
+
+    // paylineIcon.inputEnabled = true
+    // paylineIcon.events.onInputDown.add((what) => { console.log('you clicked me: ', what); what.isActive = !what.isActive })
+    let inactiveGroup = this.game.add.group()
+    let activeGroup = this.game.add.group()
+
+    let inactivePaylineIcon = inactiveGroup.create(205, 680, 'game_and_ui_atlas', 'ui/1_lines.png')
+    let activePaylineIcon = activeGroup.create(205, 670, 'game_and_ui_atlas', 'ui/1_lines_active.png')
+    inactivePaylineIcon.visible = false
+
+    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
+
+    inactivePaylineIcon = inactiveGroup.create(245, 680, 'game_and_ui_atlas', 'ui/3_lines.png')
+    activePaylineIcon = activeGroup.create(245, 670, 'game_and_ui_atlas', 'ui/3_lines_active.png')
+    activePaylineIcon.visible = false
+
+    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
+
+    inactivePaylineIcon = inactiveGroup.create(285, 680, 'game_and_ui_atlas', 'ui/5_lines.png')
+    activePaylineIcon = activeGroup.create(285, 670, 'game_and_ui_atlas', 'ui/5_lines_active.png')
+    activePaylineIcon.visible = false
+
+    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
+
+    inactivePaylineIcon = inactiveGroup.create(325, 680, 'game_and_ui_atlas', 'ui/7_lines.png')
+    activePaylineIcon = activeGroup.create(325, 670, 'game_and_ui_atlas', 'ui/7_lines_active.png')
+    activePaylineIcon.visible = false
+
+    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
+
+    inactivePaylineIcon = inactiveGroup.create(365, 680, 'game_and_ui_atlas', 'ui/9_lines.png')
+    activePaylineIcon = activeGroup.create(365, 670, 'game_and_ui_atlas', 'ui/9_lines_active.png')
+    activePaylineIcon.visible = false
+
+    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
+
+  }
+
+  incrementLines () {
+    // turn off current indicator
+    this.paylineIcons[this.selectedPaylines].inactiveIcon.visible = true
+    this.paylineIcons[this.selectedPaylines].activeIcon.visible = false
+
+    // turn on next indicator
+    this.selectedPaylines = this.selectedPaylines + 1
+    if (this.selectedPaylines >= this.paylineIcons.length) {
+      this.selectedPaylines = 0
+    }
+
+    this.paylineIcons[this.selectedPaylines].inactiveIcon.visible = false
+    this.paylineIcons[this.selectedPaylines].activeIcon.visible = true
+    this.paylineIcons[this.selectedPaylines].activeIcon.zIndex = 100
   }
 
   spin () {
