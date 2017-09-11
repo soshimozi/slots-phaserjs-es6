@@ -4,13 +4,30 @@ const cellWidth = 144
 const cellHeight = 154
 const halfCellHeight = 77
 
+function weightedRand (spec) {
+  let table = []
+  for (let i in spec) {
+    // The constant 10 below should be computed based on the
+    // weights in the spec for a correct and optimal table size.
+    // E.g. the spec {0:0.999, 1:0.001} will break this impl.
+    for (let j = 0; j < spec[i] * 10; j++) {
+      table.push(i)
+    }
+  }
+  return function () {
+    return table[Math.floor(Math.random() * table.length)]
+  }
+}
+// var rand012 = weightedRand({0:0.8, 1:0.1, 2:0.1});
+// rand012(); // random in distribution...
+
 export default class extends Phaser.Sprite {
-  constructor (game, x, y, cellCount, visibleCells, key) {
+  constructor (game, x, y, cellCount, visibleCells, weights, key) {
     super(game)
 
     this.key = key
 
-    let indexes = this._buildIndexes(game, cellCount, visibleCells)
+    let indexes = this._buildIndexes(game, cellCount, visibleCells, weights)
 
     this.anchor.setTo(0, 0)
 
@@ -124,9 +141,6 @@ export default class extends Phaser.Sprite {
   }
 
   _onReelStopped () {
-    console.log('key: ', this.key, ', cells: ', this.getDisplayedCells())
-    // console.log('y: ', this.reelGroup.y)
-
     this.readyForScore = true
   }
 
@@ -142,15 +156,20 @@ export default class extends Phaser.Sprite {
     }
   }
 
-  _buildIndexes (game, count, visibleCells) {
+  _buildIndexes (game, count, visibleCells, weights) {
     let indexes = []
     let last = -1
 
+    let rand = weightedRand(weights)
+
+    // var rand012 = weightedRand({0:0.8, 1:0.1, 2:0.1});
+    // rand012(); // random in distribution...
+
     for (let i = 0; i < count - visibleCells; i++) {
-      let next = game.rnd.integerInRange(1, 8)
+      let next = rand() // game.rnd.weightedPick(weights)
 
       while (next === last) {
-        next = game.rnd.integerInRange(1, 8)
+        next = rand() // game.rnd.weightedPick(weights)
       }
 
       indexes.push(next)

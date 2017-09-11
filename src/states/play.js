@@ -3,17 +3,19 @@ import Reel from '../prefabs/reel'
 import _ from 'lodash'
 import Indicator from '../prefabs/indicator'
 
-const reelCellCount = 50
+const reelCellCount = 350
 const visibleCells = 3
 const reelCount = 5
 
 export default class extends Phaser.State {
-  init () {}
+  init () {
+    this.game.stage.disableVisibilityChange = true
+  }
 
   preload () {}
 
   create () {
-    this.game.stage.backgroundColor = '#ffffff'
+    this.game.stage.backgroundColor = '#462209'
 
     this.game.add.sprite(0, 80, 'game_and_ui_atlas', 'screen.png')
     this.game.add.sprite(0, 80, 'game_and_ui_atlas', 'back.png')
@@ -22,23 +24,72 @@ export default class extends Phaser.State {
     logo.anchor.setTo(0.5, 0)
 
     this.reels = []
-
+    let randomWeights = {1: 0.5, 2: 1.0, 3: 0.083, 4: 0.5, 5: 0.67, 6: 1.0, 7: 0.67, 8: 0.083}
+    // let weights = [2, 6, 7, 5, 4, 1, 3, 8]
     for (let i = 1; i <= reelCount; i++) {
-      let reel = new Reel(this.game, 105 + (i * 152), 190, reelCellCount, visibleCells, 'reel' + i)
+      let reel = new Reel(this.game, 88 + (i * 160), 190, reelCellCount, visibleCells, randomWeights, 'reel' + i)
       this.game.add.existing(reel)
       this.reels.push(reel)
     }
 
-    this.buildUI()
-    this.selectedPaylines = 0
+    // create 5 frame sprites
+    this.winFrames = []
+    for (let frameIndex = 0; frameIndex < 5; frameIndex++) {
+      let sprite = this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'frame.png')
+      sprite.visible = false
 
+      this.winFrames.push(sprite)
+    }
+
+    this.frameColumnOffsets = [234, 394, 554, 714, 874]
+    this.frameRowOffsets = [174, 326, 480]
+
+    this.selectedPaylinesIndex = 0
+
+    this.ticketCount = 100000
     this.paylineCounts = [1, 3, 5, 7, 9]
+    this.paylineCheckPatterns = [ [0, 0, 0, 0, 0], [0, 0, 1, 0, 0], [0, 1, 2, 1, 0], [1, 0, 0, 0, 1], [1, 1, 1, 1, 1], [1, 2, 2, 2, 1], [2, 1, 0, 1, 2], [2, 2, 1, 2, 2], [2, 2, 2, 2, 2] ]
+
+    this.buildUI()
+
+    this.game.add.sprite(5, 220, 'game_and_ui_atlas', 'ui/tickets_per_line.png')
+
+    this.currentBetAmount = 1
+    this.ticketsPerLineText = this.game.add.text(65, 270, '', {font: '32px Bangers', fill: '#ffffff', align: 'center'})
+    this.ticketsPerLineText.anchor.setTo(0.5, 0)
+
+    this.ticketsPerLineText.text = this.currentBetAmount.toString()
+    this.maxBet = 15
+
+    this.game.add.text(635, 775, 'NUMBER OF TICKETS', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center', fontWeight: 'bold'}).anchor.setTo(0.5, 0)
+
+    this.addInfoBar(535, 800)
+    this.ticketCountText = this.game.add.text(635, 795, '', {font: '24px Bangers', fill: '#ffffff', align: 'center'})
+    this.ticketCountText.text = this.ticketCount.toString()
+    this.ticketCountText.anchor.setTo(0.5, 0)
+
+    this.autoSpin = false
+    this.readyToSpin = true
+  }
+
+  addInfoBar (x, y) {
+    let barGroup = this.game.add.group()
+    barGroup.x = x
+    barGroup.y = y
+
+    barGroup.create(0, 0, 'game_and_ui_atlas', 'ui/b1.png')
+    barGroup.create(20, 0, 'game_and_ui_atlas', 'ui/b2.png')
+    let end = barGroup.create(200, 0, 'game_and_ui_atlas', 'ui/b1.png')
+    end.scale.x *= -1
+
+    return barGroup
   }
 
   buildUI () {
-    this.addActionButtons()
     this.addPaylines()
     this.addLineIndicators()
+    this.game.add.sprite(1020, 350, 'game_and_ui_atlas', 'pers_static.png')
+    this.addActionButtons()
     this.addPaylineIcons()
   }
 
@@ -93,8 +144,8 @@ export default class extends Phaser.State {
     this.game.add.existing(leftIndicator)
     this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 600, 'game_and_ui_atlas', 'ui/4.png', 'ui/9_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 600, 'game_and_ui_atlas', 'ui/4.png', 'ui/9_inactive.png')
+    leftIndicator = new Indicator(this.game, 110, 600, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
+    rightIndicator = new Indicator(this.game, 1080, 600, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
     this.game.add.existing(rightIndicator)
     this.game.add.existing(leftIndicator)
     this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
@@ -102,6 +153,7 @@ export default class extends Phaser.State {
 
   addPaylines () {
     this.playlines = []
+
     let playline = this.game.add.sprite(148, 210, 'game_and_ui_atlas', 'ui/winlines/1.png')
     playline.visible = false
     this.playlines.push(playline)
@@ -140,77 +192,66 @@ export default class extends Phaser.State {
   }
 
   addActionButtons () {
-    this.game.add.button(1100, 640, 'game_and_ui_atlas', () => { this.spin() }, this, 'ui/start_btn.png', 'ui/start_btn.png', 'ui/start_active_btn.png', 'ui/start_btn.png')
-    this.game.add.button(200, 720, 'game_and_ui_atlas', () => { this.incrementLines() }, this, 'ui/lines.png', 'ui/lines.png', 'ui/lines_active.png', 'ui/lines.png')
-    this.game.add.button(420, 720, 'game_and_ui_atlas', () => { this.incrementBet() }, this, 'ui/betone.png', 'ui/betone.png', 'ui/betone_active.png', 'ui/betone.png')
-    this.game.add.button(640, 720, 'game_and_ui_atlas', () => { this.betMax() }, this, 'ui/betmax.png', 'ui/betmax.png', 'ui/betmax_active.png', 'ui/betmax.png')
-    this.game.add.button(860, 720, 'game_and_ui_atlas', () => { this.doubleDown() }, this, 'ui/double.png', 'ui/double.png', 'ui/double_active.png', 'ui/double.png')
+    this.game.add.button(1100, 760, 'game_and_ui_atlas', () => { if (this.readyToSpin) this.spin() }, this, 'ui/start_btn.png', 'ui/start_btn.png', 'ui/start_active_btn.png', 'ui/start_btn.png')
+    this.game.add.button(200, 840, 'game_and_ui_atlas', () => { this.incrementLines() }, this, 'ui/lines.png', 'ui/lines.png', 'ui/lines_active.png', 'ui/lines.png')
+    this.game.add.button(420, 840, 'game_and_ui_atlas', () => { this.incrementBet() }, this, 'ui/betone.png', 'ui/betone.png', 'ui/betone_active.png', 'ui/betone.png')
+    this.game.add.button(640, 840, 'game_and_ui_atlas', () => { this.betMax() }, this, 'ui/betmax.png', 'ui/betmax.png', 'ui/betmax_active.png', 'ui/betmax.png')
+    this.game.add.button(860, 840, 'game_and_ui_atlas', () => { this.doubleDown() }, this, 'ui/double.png', 'ui/double.png', 'ui/double_active.png', 'ui/double.png')
+    this.game.add.button(-40, 760, 'game_and_ui_atlas', () => { this.autoSpin = !this.autoSpin; if (this.autoSpin && this.readyToSpin) this.spin() }, this, 'ui/auto_spin.png', 'ui/auto_spin.png', 'ui/auto_spin_active.png', 'ui/auto_spin.png')
   }
 
-  doubleDown () {}
-  incrementBet () {}
-  betMax () {}
+  doubleDown () {
+    this.isDoubleDown = true
+
+    // show double down icon
+  }
+  incrementBet () {
+    this.currentBetAmount = this.currentBetAmount + 1
+    if (this.currentBetAmount > this.maxBet) {
+      this.currentBetAmount = this.maxBet
+    }
+
+    this.ticketsPerLineText.text = this.currentBetAmount.toString()
+  }
+  betMax () {
+    this.currentBetAmount = this.maxBet
+    this.ticketsPerLineText.text = this.currentBetAmount.toString()
+  }
 
   addPaylineIcons () {
     this.paylineIcons = []
 
-    // let paylineIcon = new Indicator(this.game, 0, 0, 'game_and_ui_atlas', 'ui/1_lines_active.png', 'ui/1_lines.png')
-    // this.game.add.existing(paylineIcon)
-    // this.paylineIcons.push(paylineIcon)
-
-    // paylineIcon.setActive(true)
-
-    // paylineIcon.inputEnabled = true
-    // paylineIcon.events.onInputDown.add((what) => { console.log('you clicked me: ', what); what.isActive = !what.isActive })
     let inactiveGroup = this.game.add.group()
     let activeGroup = this.game.add.group()
 
-    let inactivePaylineIcon = inactiveGroup.create(205, 680, 'game_and_ui_atlas', 'ui/1_lines.png')
-    let activePaylineIcon = activeGroup.create(205, 670, 'game_and_ui_atlas', 'ui/1_lines_active.png')
-    inactivePaylineIcon.visible = false
+    for (let i = 0; i < 5; i++) {
+      let count = this.paylineCounts[i]
 
-    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
+      let inactivePaylineIcon = inactiveGroup.create(205 + (40 * i), 800, 'game_and_ui_atlas', 'ui/' + count + '_lines.png')
+      let activePaylineIcon = activeGroup.create(205 + (40 * i), 790, 'game_and_ui_atlas', 'ui/' + count + '_lines_active.png')
+      activePaylineIcon.visible = false
 
-    inactivePaylineIcon = inactiveGroup.create(245, 680, 'game_and_ui_atlas', 'ui/3_lines.png')
-    activePaylineIcon = activeGroup.create(245, 670, 'game_and_ui_atlas', 'ui/3_lines_active.png')
-    activePaylineIcon.visible = false
+      this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
+    }
 
-    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
-
-    inactivePaylineIcon = inactiveGroup.create(285, 680, 'game_and_ui_atlas', 'ui/5_lines.png')
-    activePaylineIcon = activeGroup.create(285, 670, 'game_and_ui_atlas', 'ui/5_lines_active.png')
-    activePaylineIcon.visible = false
-
-    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
-
-    inactivePaylineIcon = inactiveGroup.create(325, 680, 'game_and_ui_atlas', 'ui/7_lines.png')
-    activePaylineIcon = activeGroup.create(325, 670, 'game_and_ui_atlas', 'ui/7_lines_active.png')
-    activePaylineIcon.visible = false
-
-    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
-
-    inactivePaylineIcon = inactiveGroup.create(365, 680, 'game_and_ui_atlas', 'ui/9_lines.png')
-    activePaylineIcon = activeGroup.create(365, 670, 'game_and_ui_atlas', 'ui/9_lines_active.png')
-    activePaylineIcon.visible = false
-
-    this.paylineIcons.push({activeIcon: activePaylineIcon, inactiveIcon: inactivePaylineIcon})
-
+    this.paylineIcons[0].inactiveIcon.visible = false
+    this.paylineIcons[0].activeIcon.visible = true
   }
 
   incrementLines () {
     // turn off current indicator
-    this.paylineIcons[this.selectedPaylines].inactiveIcon.visible = true
-    this.paylineIcons[this.selectedPaylines].activeIcon.visible = false
+    this.paylineIcons[this.selectedPaylinesIndex].inactiveIcon.visible = true
+    this.paylineIcons[this.selectedPaylinesIndex].activeIcon.visible = false
 
     // turn on next indicator
-    this.selectedPaylines = this.selectedPaylines + 1
-    if (this.selectedPaylines >= this.paylineIcons.length) {
-      this.selectedPaylines = 0
+    this.selectedPaylinesIndex = this.selectedPaylinesIndex + 1
+    if (this.selectedPaylinesIndex >= this.paylineIcons.length) {
+      this.selectedPaylinesIndex = 0
     }
 
-    this.paylineIcons[this.selectedPaylines].inactiveIcon.visible = false
-    this.paylineIcons[this.selectedPaylines].activeIcon.visible = true
-    this.paylineIcons[this.selectedPaylines].activeIcon.zIndex = 100
+    this.paylineIcons[this.selectedPaylinesIndex].inactiveIcon.visible = false
+    this.paylineIcons[this.selectedPaylinesIndex].activeIcon.visible = true
+    // this.paylineIcons[this.selectedPaylinesIndex].activeIcon.zIndex = 100
   }
 
   spin () {
@@ -219,23 +260,142 @@ export default class extends Phaser.State {
     }
 
     this.spinning = true
+
+    this.currentBet = {
+      amount: this.paylineCounts[this.selectedPaylinesIndex] * this.currentBetAmount,
+      double: this.isDoubleDown,
+      payLinesIndex: this.selectedPaylinesIndex
+    }
+
+    this.ticketCount -= this.currentBet.amount
+    this.ticketCountText.text = this.ticketCount.toString()
+
+    for (let lineIndex = 0; lineIndex < this.lineIndicators.length; lineIndex++) {
+      this.lineIndicators[lineIndex].left.setActive(false)
+      this.lineIndicators[lineIndex].right.setActive(false)
+
+      this.playlines[lineIndex].visible = false
+    }
+
+    this.showResults = false
+    this.readyToSpin = false
+    this.hideFrames()
   }
 
   update () {
     if (this.spinning) {
       let reelsReady = _.map(this.reels, (r) => { return r.readyForScore ? 1 : 0 }).reduce((m, n) => { return m + n }, 0)
       if (reelsReady === reelCount) {
-        this.spinning = false
+        // this.spinning = false
 
-        for (let i = 0; i < this.reels.length; i++) {
-          console.log('key: ', this.reels[i].key)
-          console.log('cells: ', this.reels[i].getDisplayedCells())
+        this.spinning = false
+        this.showResults = true
+
+        this.currentPayline = 0
+        this.lastUpdate = 0
+
+        // there is always one payline so check that first
+        let matchCount = this.checkPayLine(this.paylineCheckPatterns[this.currentPayline])
+
+        if (matchCount > 0) {
+          this.showWinResults(matchCount, this.paylineCheckPatterns[this.currentPayline])
+          this.lastUpdate = this.game.time.now
+
+          console.log('gametime: ', this.game.time)
+          console.log('lastUpdate: ', this.lastUpdate)
+        }
+
+        // this.checkPaylines()
+      }
+    } else if (this.showResults) {
+      // if only one match just ignore the update
+      let winLines = 0
+      for (let i = 0; i < this.paylineCounts[this.currentBet.payLinesIndex]; i++) {
+        let matchCount = this.checkPayLine(this.paylineCheckPatterns[i])
+        if (matchCount > 0) {
+          winLines += 1
+        }
+      }
+
+      if (this.game.time.now - this.lastUpdate > 3000) {
+        if (winLines > 1) {
+          this.hideFrames()
+          // this.lineIndicators[this.currentPayline].left.setActive(false)
+          // this.lineIndicators[this.currentPayline].right.setActive(false)
+          //
+          // this.playlines[this.currentPayline].visible = false
+          //
+          this.displayPayLine(this.currentPayline, false)
+        }
+
+        this.currentPayline += 1
+
+        if (this.currentPayline >= this.paylineCounts[this.currentBet.payLinesIndex]) {
+          this.currentPayline = 0
+
+          // we have cycled through once, so ready to spin now
+          this.readyToSpin = true
+        }
+
+        let matchCount = this.checkPayLine(this.paylineCheckPatterns[this.currentPayline])
+
+        // if we have matches show the display for 3 seconds
+        // otherwise we will update immediately
+        if (matchCount > 0) {
+          this.showWinResults(matchCount, this.paylineCheckPatterns[this.currentPayline])
+
+          this.lastUpdate = this.game.time.now
         }
       }
     }
   }
 
-  checkPaylines () {
+  hideFrames () {
+    for (let i = 0; i < 5; i++) {
+      this.winFrames[i].visible = false
+    }
+  }
 
+  showWinResults (matchCount, indexes) {
+    this.displayPayLine(this.currentPayline, true)
+
+    // show match count frames (based on the indexes)
+    // this.frameColumnOffsets = [234, 394, 554, 714, 874]
+    // this.frameRowOffsets = [174, 326, 480]
+    // this.winFrames
+
+    for (let i = 0; i < (matchCount + 1); i++) {
+      this.winFrames[i].visible = true
+      this.winFrames[i].x = this.frameColumnOffsets[i]
+      this.winFrames[i].y = this.frameRowOffsets[indexes[i]]
+    }
+  }
+
+  displayPayLine (index, state) {
+    // also activate payline
+    this.lineIndicators[index].left.setActive(state)
+    this.lineIndicators[index].right.setActive(state)
+    this.playlines[index].visible = state
+  }
+
+  checkPayLine (indexes) {
+    let displayCells = []
+    for (let reelIndex = 0; reelIndex < this.reels.length; reelIndex++) {
+      displayCells.push(this.reels[reelIndex].getDisplayedCells())
+    }
+
+    let lastCell = displayCells[0][indexes[0]]
+
+    let matchCount = 0
+    for (let i = 1; i < this.reels.length; i++) {
+      if (lastCell !== displayCells[i][indexes[i]]) {
+        break
+      }
+
+      lastCell = displayCells[i][indexes[i]]
+      matchCount++
+    }
+
+    return matchCount
   }
 }
