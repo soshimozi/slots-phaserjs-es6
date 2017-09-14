@@ -50,6 +50,7 @@ export default class extends Phaser.Sprite {
     this.blurY.blur = 0
 
     this.reelGroup.mask = mask
+    this.reelGroup.filters = [this.blurY]
 
     this.maxReelSpeed = 30
 
@@ -85,6 +86,8 @@ export default class extends Phaser.Sprite {
 
     this.readyForScore = false
     this.reelStopped = false
+
+    this.blurY.blur = 1
   }
 
   stop () {
@@ -93,17 +96,16 @@ export default class extends Phaser.Sprite {
 
   update () {
     if (!this.reelStopped) {
+      this.blurY.blur = this.reelSpeed * 0.2
       if (this.spinningUp) {
         this.reelSpeed += 0.5
 
         if (this.reelSpeed >= this.maxReelSpeed) {
           this.reelSpeed = this.maxReelSpeed
 
-          let randomTime = this.game.rnd.integerInRange(1, 5) * 300
+          let randomTime = this.game.rnd.integerInRange(300, 1500)
           this.game.time.events.add(randomTime, this.stop, this)
           this.spinningUp = false
-
-          this.blurY.blur = 20
         }
       } else {
         this.reelSpeed -= this.reelFriction

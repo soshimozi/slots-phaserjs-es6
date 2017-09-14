@@ -1,4 +1,4 @@
 export default {
   gameWidth: 1280,
-  gameHeight: 920
+  gameHeight: 820
 }

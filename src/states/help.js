@@ -5,6 +5,6 @@ import Phaser from 'phaser'
 
 export default class extends Phaser.State {
   create () {
-    this.game.stage.backgroundColor = '#ea12fd'
+    this.game.stage.backgroundColor = '#462209'
   }
 }
