@@ -5,6 +5,8 @@ import Reel from '../prefabs/reel'
 import _ from 'lodash'
 import Indicator from '../prefabs/indicator'
 
+import config from '../config';
+
 const reelCellCount = 350
 const visibleCells = 3
 const reelCount = 5
@@ -23,24 +25,16 @@ export default class extends Phaser.State {
 
     // this.game.stage.backgroundColor = '#462209'
 
-    // this.oddsTable = [[15, 45, 200], [5, 20, 100], [45, 200, 1200], [15, 45, 200], [10, 30, 150], [5, 20, 100], [10, 30, 150], [45, 200, 1200]]
-
-    // this.frameColumnOffsets = [234, 394, 554, 714, 874]
-    // this.frameRowOffsets = [95, 246, 400]
-
-    // this.selectedPaylinesIndex = 0
-
-    // this.ticketCount = 100000
-    // this.paylineCounts = [1, 3, 5, 7, 9]
-    // this.paylineCheckPatterns = [ [0, 0, 0, 0, 0], [0, 0, 1, 0, 0], [0, 1, 2, 1, 0], [1, 0, 0, 0, 1], [1, 1, 1, 1, 1], [1, 2, 2, 2, 1], [2, 1, 0, 1, 2], [2, 2, 1, 2, 2], [2, 2, 2, 2, 2] ]
-
-    // this.currentBetAmount = 1
-    // this.maxBet = 15
-
     this.autoSpin = false
     this.readyToSpin = true
 
-    window.setTimeout(() => { this.buildUI() }, 50);
+    this.ticketCount = 100000
+    this.currentBetAmount = 1;
+    this.maxBet = 15;
+
+    window.setTimeout(() => { 
+      this.buildUI() 
+    }, 50);
   }
 
   addInfoBar (x, y) {
@@ -57,40 +51,99 @@ export default class extends Phaser.State {
   }
 
   buildUI () {
+    console.log('config', config);
+
     this.game.stage.backgroundColor = '#462209'
 
-    this.oddsTable = [[15, 45, 200], [5, 20, 100], [45, 200, 1200], [15, 45, 200], [10, 30, 150], [5, 20, 100], [10, 30, 150], [45, 200, 1200]]
+    this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'screen.png');
+    this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'back.png');
 
-    this.frameColumnOffsets = [234, 394, 554, 714, 874]
+    // this.payoutTable = [
+    //   [15, 45, 200], 
+    //   [5, 20, 100], 
+    //   [45, 200, 1200], 
+    //   [15, 45, 200], 
+    //   [10, 30, 150], 
+    //   [5, 20, 100], 
+    //   [10, 30, 150], 
+    //   [45, 200, 1200]
+    // ];
+
+    // this.paylineCounts = [1, 3, 5, 7, 9]
+    // this.paylineCheckPatterns = [ 
+    //       [0, 0, 0, 0, 0], 
+    //       [0, 0, 1, 0, 0], 
+    //       [0, 1, 2, 1, 0], 
+    //       [1, 0, 0, 0, 1], 
+    //       [1, 1, 1, 1, 1], 
+    //       [1, 2, 2, 2, 1], 
+    //       [2, 1, 0, 1, 2], 
+    //       [2, 2, 1, 2, 2], 
+    //       [2, 2, 2, 2, 2] 
+    //     ];
+
+    // let randomWeights = {1: 0.75, 2: 2.0, 3: 0.08, 4: 0.75, 5: 0.85, 6: 2.0, 7: 0.85, 8: 0.08}
+
+    this.frameColumnOffsets = [224, 384, 544, 704, 864]
     this.frameRowOffsets = [95, 246, 400]
 
     this.selectedPaylinesIndex = 0
 
-    this.ticketCount = 100000
-    this.paylineCounts = [1, 3, 5, 7, 9]
-    this.paylineCheckPatterns = [ [0, 0, 0, 0, 0], [0, 0, 1, 0, 0], [0, 1, 2, 1, 0], [1, 0, 0, 0, 1], [1, 1, 1, 1, 1], [1, 2, 2, 2, 1], [2, 1, 0, 1, 2], [2, 2, 1, 2, 2], [2, 2, 2, 2, 2] ]
+    this.configureLogo();
+    this.buildReels(config.weights)
 
-    this.currentBetAmount = 1
-    this.maxBet = 15
+    this.addWinEffects();
 
-    this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'screen.png')
-    this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'back.png')
+    this.addPaylines()
+    this.addLineIndicators()
+    this.addIdleAnimations();
 
-    let logo = this.game.add.sprite(this.game.world.centerX, -5, 'animation-textures-atlas', 'logo/logo_104.png')
-    logo.anchor.setTo(0.5, 0)
+    this.addActionButtons()
+    this.addPaylineIcons()
 
-    this.logoAnimation = this.game.add.sprite(this.game.world.centerX, -5, 'animation-textures-atlas', 'logo/logo_104.png')
-    this.logoAnimation.anchor.setTo(0.5, 0)
-    let logoAnimationNames = []
-    for (let i = 1; i < 20; i++) {
-      logoAnimationNames.push('logo/logo_' + (104 + i).toString() + '.png')
+    this.game.add.sprite(5, 140, 'game_and_ui_atlas', 'ui/tickets_per_line.png')
+    this.ticketsPerLineText = this.game.add.text(65, 190, '', {font: '32px Bangers', fill: '#ffffff', align: 'center'})
+    this.ticketsPerLineText.anchor.setTo(0.5, 0)
+    this.ticketsPerLineText.text = this.currentBetAmount.toString()
+
+    this.game.add.text(635, 695, 'NUMBER OF TICKETS', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center', fontWeight: 'bold'}).anchor.setTo(0.5, 0)
+
+    this.addInfoBar(535, 720)
+    this.ticketCountText = this.game.add.text(635, 715, '', {font: '24px Bangers', fill: '#ffffff', align: 'center'})
+    this.ticketCountText.text = this.ticketCount.toString()
+    this.ticketCountText.anchor.setTo(0.5, 0)
+
+    // TODO: Add animations for tablo
+    this.tablo = this.game.add.sprite(485, 590, 'game_and_ui_atlas', 'ui/tablo.png')
+    this.tablo.visible = false
+
+    // TODO: Add Mega Win animations
+    this.totalWinningsTextHeader = this.game.add.text(628, 610, 'YOU WON!', {font: '24px Bangers', fill: '#3399ff', align: 'center'})
+    this.totalWinningsTextHeader.anchor.setTo(0.5, 0)
+    this.totalWinningsTextHeader.visible = false
+
+    this.totalWinningsText = this.game.add.text(628, 640, '11111 Tickets', {font: '24px Bangers', fill: '#3399ff', align: 'center'})
+    this.totalWinningsText.anchor.setTo(0.5, 0)
+    this.totalWinningsText.visible = false
+  }
+
+  addIdleAnimations() {
+    let effect = this.game.add.sprite(1020, 270, 'animation-textures-atlas', 'pers/pers_idle/pers_idle_00.png')
+    let names = []
+    for (let i = 1; i < 34; i++) {
+      names.push('pers/pers_idle/pers_idle_0' + i + '.png')
     }
 
-    this.logoAnimation.animations.add('logo', logoAnimationNames, 10, true, false)
-    this.logoAnimation.animations.play('logo')
+    for (let i = 32; i >= 1; i--) {
+      names.push('pers/pers_idle/pers_idle_0' + i + '.png')
+    }
 
-    this.buildReels()
+    effect.animations.add('pers-static', names, 8, true, false)
+    effect.animations.play('pers-static')
+    effect.visible = true
+  }
 
+  addWinEffects() {
     // create 5 frame sprites and win effects
     this.winFrames = []
     this.winEffects = []
@@ -115,56 +168,27 @@ export default class extends Phaser.State {
       this.winEffects.push(effect)
     }
 
-    this.addPaylines()
-    this.addLineIndicators()
-
-    let effect = this.game.add.sprite(1020, 270, 'animation-textures-atlas', 'pers/pers_idle/pers_idle_00.png')
-    let names = []
-    for (let i = 1; i < 34; i++) {
-      names.push('pers/pers_idle/pers_idle_0' + i + '.png')
-    }
-
-    for (let i = 32; i >= 1; i--) {
-      names.push('pers/pers_idle/pers_idle_0' + i + '.png')
-    }
-
-    effect.animations.add('pers-static', names, 8, true, false)
-    effect.animations.play('pers-static')
-    effect.visible = true
-
-    this.addActionButtons()
-    this.addPaylineIcons()
-
-    this.game.add.sprite(5, 140, 'game_and_ui_atlas', 'ui/tickets_per_line.png')
-    this.ticketsPerLineText = this.game.add.text(65, 190, '', {font: '32px Bangers', fill: '#ffffff', align: 'center'})
-    this.ticketsPerLineText.anchor.setTo(0.5, 0)
-    this.ticketsPerLineText.text = this.currentBetAmount.toString()
-
-    this.game.add.text(635, 695, 'NUMBER OF TICKETS', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center', fontWeight: 'bold'}).anchor.setTo(0.5, 0)
-
-    this.addInfoBar(535, 720)
-    this.ticketCountText = this.game.add.text(635, 715, '', {font: '24px Bangers', fill: '#ffffff', align: 'center'})
-    this.ticketCountText.text = this.ticketCount.toString()
-    this.ticketCountText.anchor.setTo(0.5, 0)
-
-    this.tablo = this.game.add.sprite(485, 590, 'game_and_ui_atlas', 'ui/tablo.png')
-    this.tablo.visible = false
-
-    this.totalWinningsTextHeader = this.game.add.text(628, 610, 'YOU WON!', {font: '24px Bangers', fill: '#3399ff', align: 'center'})
-    this.totalWinningsTextHeader.anchor.setTo(0.5, 0)
-    this.totalWinningsTextHeader.visible = false
-
-    this.totalWinningsText = this.game.add.text(628, 640, '11111 Tickets', {font: '24px Bangers', fill: '#3399ff', align: 'center'})
-    this.totalWinningsText.anchor.setTo(0.5, 0)
-    this.totalWinningsText.visible = false
   }
 
-  buildReels () {
+  configureLogo() {
+    let logo = this.game.add.sprite(this.game.world.centerX, -5, 'animation-textures-atlas', 'logo/logo_104.png')
+    logo.anchor.setTo(0.5, 0)
+
+    this.logoAnimation = this.game.add.sprite(this.game.world.centerX, -5, 'animation-textures-atlas', 'logo/logo_104.png')
+    this.logoAnimation.anchor.setTo(0.5, 0)
+    let logoAnimationNames = []
+    for (let i = 1; i < 20; i++) {
+      logoAnimationNames.push('logo/logo_' + (104 + i).toString() + '.png')
+    }
+
+    this.logoAnimation.animations.add('logo', logoAnimationNames, 10, true, false)
+    this.logoAnimation.animations.play('logo')
+  }
+
+  buildReels (randomWeights) {
     this.reels = []
-    let randomWeights = {1: 0.75, 2: 2.0, 3: 0.583, 4: 0.75, 5: 0.85, 6: 2.0, 7: 0.85, 8: 0.483}
-    // let weights = [2, 6, 7, 5, 4, 1, 3, 8]
     for (let i = 1; i <= reelCount; i++) {
-      let reel = new Reel(this.game, 88 + (i * 160), 110, reelCellCount, visibleCells, randomWeights, 'reel' + i)
+      let reel = new Reel(this.game, 78 + (i * 160), 110, reelCellCount, visibleCells, randomWeights, 'reel' + i)
       this.game.add.existing(reel)
       this.reels.push(reel)
     }
@@ -173,99 +197,116 @@ export default class extends Phaser.State {
   addLineIndicators () {
     this.lineIndicators = []
 
-    let leftIndicator = new Indicator(this.game, 110, 110, 'game_and_ui_atlas', 'ui/1_.png', 'ui/1_inactive.png')
-    let rightIndicator = new Indicator(this.game, 1080, 110, 'game_and_ui_atlas', 'ui/1_.png', 'ui/1_inactive.png')
-    this.game.add.existing(leftIndicator)
-    this.game.add.existing(rightIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    for(let i=1; i<10; i++) {
+      let leftIndicator = new Indicator(this.game, 110, 120 + (i * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
+      let rightIndicator = new Indicator(this.game, 1080, 120 + (i * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
+      this.game.add.existing(leftIndicator)
+      this.game.add.existing(rightIndicator)
+      this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+  
+    }
 
-    leftIndicator = new Indicator(this.game, 110, 160, 'game_and_ui_atlas', 'ui/2.png', 'ui/2_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 160, 'game_and_ui_atlas', 'ui/2.png', 'ui/2_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // let leftIndicator = new Indicator(this.game, 110, 120, 'game_and_ui_atlas', 'ui/1_.png', 'ui/1_inactive.png')
+    // let rightIndicator = new Indicator(this.game, 1080, 120, 'game_and_ui_atlas', 'ui/1_.png', 'ui/1_inactive.png')
+    // this.game.add.existing(leftIndicator)
+    // this.game.add.existing(rightIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 210, 'game_and_ui_atlas', 'ui/3.png', 'ui/3_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 210, 'game_and_ui_atlas', 'ui/3.png', 'ui/3_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // leftIndicator = new Indicator(this.game, 110, 170, 'game_and_ui_atlas', 'ui/2.png', 'ui/2_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 170, 'game_and_ui_atlas', 'ui/2.png', 'ui/2_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 265, 'game_and_ui_atlas', 'ui/4.png', 'ui/4_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 265, 'game_and_ui_atlas', 'ui/4.png', 'ui/4_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // leftIndicator = new Indicator(this.game, 110, 220, 'game_and_ui_atlas', 'ui/3.png', 'ui/3_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 220, 'game_and_ui_atlas', 'ui/3.png', 'ui/3_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 315, 'game_and_ui_atlas', 'ui/5.png', 'ui/5_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 315, 'game_and_ui_atlas', 'ui/5.png', 'ui/5_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // leftIndicator = new Indicator(this.game, 110, 270, 'game_and_ui_atlas', 'ui/4.png', 'ui/4_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 270, 'game_and_ui_atlas', 'ui/4.png', 'ui/4_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 365, 'game_and_ui_atlas', 'ui/6.png', 'ui/6_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 365, 'game_and_ui_atlas', 'ui/6.png', 'ui/6_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // leftIndicator = new Indicator(this.game, 110, 320, 'game_and_ui_atlas', 'ui/5.png', 'ui/5_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 320, 'game_and_ui_atlas', 'ui/5.png', 'ui/5_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 420, 'game_and_ui_atlas', 'ui/7.png', 'ui/7_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 420, 'game_and_ui_atlas', 'ui/7.png', 'ui/7_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // leftIndicator = new Indicator(this.game, 110, 370, 'game_and_ui_atlas', 'ui/6.png', 'ui/6_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 370, 'game_and_ui_atlas', 'ui/6.png', 'ui/6_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 470, 'game_and_ui_atlas', 'ui/8.png', 'ui/8_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 470, 'game_and_ui_atlas', 'ui/8.png', 'ui/8_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // leftIndicator = new Indicator(this.game, 110, 420, 'game_and_ui_atlas', 'ui/7.png', 'ui/7_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 420, 'game_and_ui_atlas', 'ui/7.png', 'ui/7_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
 
-    leftIndicator = new Indicator(this.game, 110, 520, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
-    rightIndicator = new Indicator(this.game, 1080, 520, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
-    this.game.add.existing(rightIndicator)
-    this.game.add.existing(leftIndicator)
-    this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    // leftIndicator = new Indicator(this.game, 110, 470, 'game_and_ui_atlas', 'ui/8.png', 'ui/8_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 470, 'game_and_ui_atlas', 'ui/8.png', 'ui/8_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+
+    // leftIndicator = new Indicator(this.game, 110, 520, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
+    // rightIndicator = new Indicator(this.game, 1080, 520, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
+    // this.game.add.existing(rightIndicator)
+    // this.game.add.existing(leftIndicator)
+    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
   }
 
   addPaylines () {
     this.playlines = []
+    let offsets = [20, 20, 20, -100, 20, 20, -270, -144, 20]
 
-    let playline = this.game.add.sprite(148, 130, 'game_and_ui_atlas', 'ui/winlines/1.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    for(let i =0; i < 9; i++) {
+      let playline = this.game.add.sprite(148, 120 + (i*50) + offsets[i], 'game_and_ui_atlas', 'ui/winlines/'+(i+1)+'.png')
+      playline.visible = false
+      this.playlines.push(playline)
+  
+    }
 
-    playline = this.game.add.sprite(148, 180, 'game_and_ui_atlas', 'ui/winlines/2.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // let playline = this.game.add.sprite(148, 120 + 20, 'game_and_ui_atlas', 'ui/winlines/1.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
 
-    playline = this.game.add.sprite(148, 230, 'game_and_ui_atlas', 'ui/winlines/3.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // playline = this.game.add.sprite(148, 170 + 20, 'game_and_ui_atlas', 'ui/winlines/2.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
 
-    playline = this.game.add.sprite(148, 165, 'game_and_ui_atlas', 'ui/winlines/4.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // playline = this.game.add.sprite(148, 220 + 20, 'game_and_ui_atlas', 'ui/winlines/3.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
 
-    playline = this.game.add.sprite(148, 335, 'game_and_ui_atlas', 'ui/winlines/5.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // playline = this.game.add.sprite(148, 270 - 100, 'game_and_ui_atlas', 'ui/winlines/4.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
 
-    playline = this.game.add.sprite(148, 385, 'game_and_ui_atlas', 'ui/winlines/6.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // playline = this.game.add.sprite(148, 320 + 20, 'game_and_ui_atlas', 'ui/winlines/5.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
 
-    playline = this.game.add.sprite(148, 150, 'game_and_ui_atlas', 'ui/winlines/7.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // playline = this.game.add.sprite(148, 370 + 20, 'game_and_ui_atlas', 'ui/winlines/6.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
 
-    playline = this.game.add.sprite(148, 325, 'game_and_ui_atlas', 'ui/winlines/8.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // playline = this.game.add.sprite(148, 420 - 270, 'game_and_ui_atlas', 'ui/winlines/7.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
 
-    playline = this.game.add.sprite(148, 540, 'game_and_ui_atlas', 'ui/winlines/9.png')
-    playline.visible = false
-    this.playlines.push(playline)
+    // playline = this.game.add.sprite(148, 470 - 144, 'game_and_ui_atlas', 'ui/winlines/8.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
+
+    // playline = this.game.add.sprite(148, 520 + 20, 'game_and_ui_atlas', 'ui/winlines/9.png')
+    // playline.visible = false
+    // this.playlines.push(playline)
   }
 
   addActionButtons () {
@@ -283,6 +324,7 @@ export default class extends Phaser.State {
 
     // show double down icon
   }
+
   incrementBet () {
     this.currentBetAmount = this.currentBetAmount + 1
     if (this.currentBetAmount > this.maxBet) {
@@ -303,7 +345,7 @@ export default class extends Phaser.State {
     let activeGroup = this.game.add.group()
 
     for (let i = 0; i < 5; i++) {
-      let count = this.paylineCounts[i]
+      let count = config.paylineCounts[i]
 
       let inactivePaylineIcon = inactiveGroup.create(205 + (40 * i), 720, 'game_and_ui_atlas', 'ui/' + count + '_lines.png')
       let activePaylineIcon = activeGroup.create(205 + (40 * i), 710, 'game_and_ui_atlas', 'ui/' + count + '_lines_active.png')
@@ -344,7 +386,7 @@ export default class extends Phaser.State {
     this.spinning = true
 
     this.currentBet = {
-      amount: this.paylineCounts[this.selectedPaylinesIndex] * this.currentBetAmount,
+      amount: config.paylineCounts[this.selectedPaylinesIndex] * this.currentBetAmount,
       double: this.isDoubleDown,
       payLinesIndex: this.selectedPaylinesIndex
     }
@@ -380,11 +422,11 @@ export default class extends Phaser.State {
         this.lastUpdate = 0
 
         // there is always one payline so check that first
-        let matchCount = this.checkPayLine(this.paylineCheckPatterns[this.currentPayline])
+        let matchCount = this.checkPayLine(config.paylineCheckPatterns[this.currentPayline])
 
         // if we have three or more
         if (matchCount > 1) {
-          this.showWinResults(matchCount, this.paylineCheckPatterns[this.currentPayline])
+          this.showWinResults(matchCount, config.paylineCheckPatterns[this.currentPayline])
           this.lastUpdate = this.game.time.now
         }
 
@@ -396,6 +438,8 @@ export default class extends Phaser.State {
       let winLines = this.getWinLines()
 
       if (winLines === 0 && this.autoSpin) {
+        this.showResults = false;
+
         window.setTimeout(() => {
           this.readyToSpin = true;
           this.spin();
@@ -406,6 +450,7 @@ export default class extends Phaser.State {
       }
 
       if (this.game.time.now - this.lastUpdate > 1500) {
+
         // we have more than one win line
         if (winLines > 1) {
           this.hideFrames()
@@ -414,18 +459,18 @@ export default class extends Phaser.State {
 
         this.currentPayline += 1
 
-        if (this.currentPayline >= this.paylineCounts[this.currentBet.payLinesIndex]) {
+        if (this.currentPayline >= config.paylineCounts[this.currentBet.payLinesIndex]) {
           this.currentPayline = 0
 
           // we have cycled through once, so ready to spin now
           this.readyToSpin = true
         }
 
-        let matchCount = this.checkPayLine(this.paylineCheckPatterns[this.currentPayline])
+        let matchCount = this.checkPayLine(config.paylineCheckPatterns[this.currentPayline])
 
         // if we have 3 or more of the same
         if (matchCount > 1) {
-          this.showWinResults(matchCount, this.paylineCheckPatterns[this.currentPayline])
+          this.showWinResults(matchCount, config.paylineCheckPatterns[this.currentPayline])
           this.lastUpdate = this.game.time.now
         }
       }
@@ -434,8 +479,8 @@ export default class extends Phaser.State {
 
   getWinLines () {
     let winLines = 0
-    for (let i = 0; i < this.paylineCounts[this.currentBet.payLinesIndex]; i++) {
-      let matchCount = this.checkPayLine(this.paylineCheckPatterns[i])
+    for (let i = 0; i < config.paylineCounts[this.currentBet.payLinesIndex]; i++) {
+      let matchCount = this.checkPayLine(config.paylineCheckPatterns[i])
 
       // we have a winner
       if (matchCount > 1) {
@@ -454,16 +499,16 @@ export default class extends Phaser.State {
       displayCells.push(this.reels[reelIndex].getDisplayedCells())
     }
 
-    let betAmount = (this.currentBet.amount / this.paylineCounts[this.currentBet.payLinesIndex])
-    for (let i = 0; i < this.paylineCounts[this.currentBet.payLinesIndex]; i++) {
-      let matchCount = this.checkPayLine(this.paylineCheckPatterns[i])
+    let betAmount = (this.currentBet.amount / config.paylineCounts[this.currentBet.payLinesIndex])
+    for (let i = 0; i < config.paylineCounts[this.currentBet.payLinesIndex]; i++) {
+      let matchCount = this.checkPayLine(config.paylineCheckPatterns[i])
 
       // get first index of match
-      let index = displayCells[0][this.paylineCheckPatterns[i][0]] - 1
+      let index = displayCells[0][config.paylineCheckPatterns[i][0]] - 1
 
       // three or more
       if (matchCount > 1) {
-        totalWinnings += (this.oddsTable[index][matchCount - 2] * betAmount)
+        totalWinnings += (config.payoutTable[index][matchCount - 2] * betAmount)
       }
     }
 

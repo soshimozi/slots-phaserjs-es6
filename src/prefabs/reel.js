@@ -91,7 +91,7 @@ export default class extends Phaser.Sprite {
     this.readyForScore = false
     this.reelStopped = false
 
-    this.blurY.blur = 1
+    this.blurY.blur = 1;
   }
 
   stop () {
@@ -100,7 +100,7 @@ export default class extends Phaser.Sprite {
 
   update () {
     if (!this.reelStopped) {
-      this.blurY.blur = this.reelSpeed * 0.2
+      this.blurY.blur = this.reelSpeed; // * 0.2
       if (this.spinningUp) {
         this.reelSpeed += 0.5
 

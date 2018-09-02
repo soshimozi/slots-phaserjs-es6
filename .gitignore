@@ -63,4 +63,4 @@ dist/
 # WebStorm stuff
 .idea/
 
-assets/
+assets/**/*.png
