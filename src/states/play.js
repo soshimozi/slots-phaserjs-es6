@@ -198,67 +198,13 @@ export default class extends Phaser.State {
     this.lineIndicators = []
 
     for(let i=1; i<10; i++) {
-      let leftIndicator = new Indicator(this.game, 110, 120 + (i * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
-      let rightIndicator = new Indicator(this.game, 1080, 120 + (i * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
+      let leftIndicator = new Indicator(this.game, 110, 120 + ((i - 1) * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
+      let rightIndicator = new Indicator(this.game, 1080, 120 + ((i - 1) * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
       this.game.add.existing(leftIndicator)
       this.game.add.existing(rightIndicator)
       this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
   
-    }
-
-    // let leftIndicator = new Indicator(this.game, 110, 120, 'game_and_ui_atlas', 'ui/1_.png', 'ui/1_inactive.png')
-    // let rightIndicator = new Indicator(this.game, 1080, 120, 'game_and_ui_atlas', 'ui/1_.png', 'ui/1_inactive.png')
-    // this.game.add.existing(leftIndicator)
-    // this.game.add.existing(rightIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 170, 'game_and_ui_atlas', 'ui/2.png', 'ui/2_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 170, 'game_and_ui_atlas', 'ui/2.png', 'ui/2_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 220, 'game_and_ui_atlas', 'ui/3.png', 'ui/3_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 220, 'game_and_ui_atlas', 'ui/3.png', 'ui/3_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 270, 'game_and_ui_atlas', 'ui/4.png', 'ui/4_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 270, 'game_and_ui_atlas', 'ui/4.png', 'ui/4_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 320, 'game_and_ui_atlas', 'ui/5.png', 'ui/5_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 320, 'game_and_ui_atlas', 'ui/5.png', 'ui/5_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 370, 'game_and_ui_atlas', 'ui/6.png', 'ui/6_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 370, 'game_and_ui_atlas', 'ui/6.png', 'ui/6_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 420, 'game_and_ui_atlas', 'ui/7.png', 'ui/7_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 420, 'game_and_ui_atlas', 'ui/7.png', 'ui/7_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 470, 'game_and_ui_atlas', 'ui/8.png', 'ui/8_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 470, 'game_and_ui_atlas', 'ui/8.png', 'ui/8_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-
-    // leftIndicator = new Indicator(this.game, 110, 520, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
-    // rightIndicator = new Indicator(this.game, 1080, 520, 'game_and_ui_atlas', 'ui/9.png', 'ui/9_inactive.png')
-    // this.game.add.existing(rightIndicator)
-    // this.game.add.existing(leftIndicator)
-    // this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
+    }    
   }
 
   addPaylines () {
@@ -266,47 +212,13 @@ export default class extends Phaser.State {
     let offsets = [20, 20, 20, -100, 20, 20, -270, -144, 20]
 
     for(let i =0; i < 9; i++) {
+      console.log('ui/winlines/'+(i+1)+'.png');
+
       let playline = this.game.add.sprite(148, 120 + (i*50) + offsets[i], 'game_and_ui_atlas', 'ui/winlines/'+(i+1)+'.png')
       playline.visible = false
       this.playlines.push(playline)
   
     }
-
-    // let playline = this.game.add.sprite(148, 120 + 20, 'game_and_ui_atlas', 'ui/winlines/1.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 170 + 20, 'game_and_ui_atlas', 'ui/winlines/2.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 220 + 20, 'game_and_ui_atlas', 'ui/winlines/3.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 270 - 100, 'game_and_ui_atlas', 'ui/winlines/4.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 320 + 20, 'game_and_ui_atlas', 'ui/winlines/5.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 370 + 20, 'game_and_ui_atlas', 'ui/winlines/6.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 420 - 270, 'game_and_ui_atlas', 'ui/winlines/7.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 470 - 144, 'game_and_ui_atlas', 'ui/winlines/8.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
-
-    // playline = this.game.add.sprite(148, 520 + 20, 'game_and_ui_atlas', 'ui/winlines/9.png')
-    // playline.visible = false
-    // this.playlines.push(playline)
   }
 
   addActionButtons () {
