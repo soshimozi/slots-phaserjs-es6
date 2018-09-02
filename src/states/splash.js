@@ -30,7 +30,7 @@ export default class extends Phaser.State {
     this.load.atlasJSONHash('risk_game_atlas', RiskGameTexturePng, RiskGameTextureJson)
     this.load.atlasJSONHash('animation-textures-atlas', AnimationTexturePng, AnimationTexttureJson)
 
-    this.game.load.script('BlurY', 'https://cdn.rawgit.com/photonstorm/phaser/master/v2/filters/BlurY.js')
+    this.game.load.script('BlurY', 'https://cdn.rawgit.com/photonstorm/phaser-ce/master/filters/BlurY.js')
 
     let text = this.add.text(this.world.centerX, this.world.centerY - 24, 'Loading Textures ...', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center'})
     text.anchor.setTo(0.5, 0.5)

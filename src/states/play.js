@@ -18,26 +18,29 @@ export default class extends Phaser.State {
   preload () {}
 
   create () {
-    this.game.stage.backgroundColor = '#462209'
+    let text = this.add.text(this.world.centerX, this.world.centerY - 48, 'Initializing Game ... Please Wait', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center'})
+    text.anchor.setTo(0.5, 0.5)
 
-    this.oddsTable = [[15, 45, 200], [5, 20, 100], [45, 200, 1200], [15, 45, 200], [10, 30, 150], [5, 20, 100], [10, 30, 150], [45, 200, 1200]]
+    // this.game.stage.backgroundColor = '#462209'
 
-    this.frameColumnOffsets = [234, 394, 554, 714, 874]
-    this.frameRowOffsets = [95, 246, 400]
+    // this.oddsTable = [[15, 45, 200], [5, 20, 100], [45, 200, 1200], [15, 45, 200], [10, 30, 150], [5, 20, 100], [10, 30, 150], [45, 200, 1200]]
 
-    this.selectedPaylinesIndex = 0
+    // this.frameColumnOffsets = [234, 394, 554, 714, 874]
+    // this.frameRowOffsets = [95, 246, 400]
 
-    this.ticketCount = 100000
-    this.paylineCounts = [1, 3, 5, 7, 9]
-    this.paylineCheckPatterns = [ [0, 0, 0, 0, 0], [0, 0, 1, 0, 0], [0, 1, 2, 1, 0], [1, 0, 0, 0, 1], [1, 1, 1, 1, 1], [1, 2, 2, 2, 1], [2, 1, 0, 1, 2], [2, 2, 1, 2, 2], [2, 2, 2, 2, 2] ]
+    // this.selectedPaylinesIndex = 0
 
-    this.currentBetAmount = 1
-    this.maxBet = 15
+    // this.ticketCount = 100000
+    // this.paylineCounts = [1, 3, 5, 7, 9]
+    // this.paylineCheckPatterns = [ [0, 0, 0, 0, 0], [0, 0, 1, 0, 0], [0, 1, 2, 1, 0], [1, 0, 0, 0, 1], [1, 1, 1, 1, 1], [1, 2, 2, 2, 1], [2, 1, 0, 1, 2], [2, 2, 1, 2, 2], [2, 2, 2, 2, 2] ]
+
+    // this.currentBetAmount = 1
+    // this.maxBet = 15
 
     this.autoSpin = false
     this.readyToSpin = true
 
-    this.buildUI()
+    window.setTimeout(() => { this.buildUI() }, 50);
   }
 
   addInfoBar (x, y) {
@@ -54,6 +57,22 @@ export default class extends Phaser.State {
   }
 
   buildUI () {
+    this.game.stage.backgroundColor = '#462209'
+
+    this.oddsTable = [[15, 45, 200], [5, 20, 100], [45, 200, 1200], [15, 45, 200], [10, 30, 150], [5, 20, 100], [10, 30, 150], [45, 200, 1200]]
+
+    this.frameColumnOffsets = [234, 394, 554, 714, 874]
+    this.frameRowOffsets = [95, 246, 400]
+
+    this.selectedPaylinesIndex = 0
+
+    this.ticketCount = 100000
+    this.paylineCounts = [1, 3, 5, 7, 9]
+    this.paylineCheckPatterns = [ [0, 0, 0, 0, 0], [0, 0, 1, 0, 0], [0, 1, 2, 1, 0], [1, 0, 0, 0, 1], [1, 1, 1, 1, 1], [1, 2, 2, 2, 1], [2, 1, 0, 1, 2], [2, 2, 1, 2, 2], [2, 2, 2, 2, 2] ]
+
+    this.currentBetAmount = 1
+    this.maxBet = 15
+
     this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'screen.png')
     this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'back.png')
 
@@ -377,8 +396,13 @@ export default class extends Phaser.State {
       let winLines = this.getWinLines()
 
       if (winLines === 0 && this.autoSpin) {
-        this.readyToSpin = true
-        this.spin()
+        window.setTimeout(() => {
+          this.readyToSpin = true;
+          this.spin();
+        }, 1500);
+
+        //this.readyToSpin = true
+        //this.spin()
       }
 
       if (this.game.time.now - this.lastUpdate > 1500) {

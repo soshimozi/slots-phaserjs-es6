@@ -67,6 +67,10 @@ export default class extends Phaser.Sprite {
 
     this.indexes = indexes
     this.readyForScore = false
+
+    console.log("maxY", this.maxY);
+    this.reelGroup.y = this.maxY;
+    
   }
 
   getDisplayedCells () {
@@ -120,8 +124,9 @@ export default class extends Phaser.Sprite {
 
           // get closest y
           let closestY = Math.ceil(offset / cellHeight)
+          closestY -= 1;
 
-          if (remainder > halfCellHeight) { closestY += 1 }
+          if (remainder > halfCellHeight) { closestY -= 1 }
 
           if (closestY > this.reelHeight) { closestY = 0 }
 
@@ -133,10 +138,10 @@ export default class extends Phaser.Sprite {
       }
 
       if (!this.reelStopped) {
-        this.reelGroup.y -= this.reelSpeed
-        if (this.reelGroup.y <= this.maxY) {
-          let offset = Math.abs(this.reelGroup.y - this.maxY)
-          this.reelGroup.y = -offset
+
+        this.reelGroup.y += this.reelSpeed
+        if(this.reelGroup.y > 0) {
+          this.reelGroup.y = this.maxY + this.reelGroup.y;
         }
       }
     }
@@ -156,6 +161,7 @@ export default class extends Phaser.Sprite {
       let reelSprite = this.reelGroup.create(x, y + (i * cellHeight), 'game_and_ui_atlas', 'icon_' + spriteIndex + '.png')
       reelSprite.anchor.setTo(0, 0)
     }
+    
   }
 
   _buildIndexes (game, count, visibleCells, weights) {
