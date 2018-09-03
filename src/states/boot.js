@@ -14,7 +14,7 @@ export default class extends Phaser.State {
   preload () {
     WebFont.load({
       google: {
-        families: ['Bangers', 'Libre Franklin']
+        families: ['Bangers', 'Libre Franklin', 'Sawarabi Gothic']
       },
       active: this.fontsLoaded
     })

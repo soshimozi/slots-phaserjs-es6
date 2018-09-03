@@ -1,15 +1,13 @@
 import Phaser from 'phaser'
-import PIXI from 'pixi'
 
-import Reel from '../prefabs/reel'
 import _ from 'lodash'
-import Indicator from '../prefabs/indicator'
+import PlaylineManager from '../prefabs/playline-manager';
+import InfoBox from '../prefabs/info-box';
+import InfoBar from '../prefabs/info-bar';
+import ReelManager from '../prefabs/reel-manager';
+import Announcement from '../prefabs/announcement';
 
 import config from '../config';
-
-const reelCellCount = 350
-const visibleCells = 3
-const reelCount = 5
 
 export default class extends Phaser.State {
   init () {
@@ -17,114 +15,60 @@ export default class extends Phaser.State {
     this.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL
   }
 
-  preload () {}
+  preload () {
+  }
 
   create () {
-    let text = this.add.text(this.world.centerX, this.world.centerY - 48, 'Initializing Game ... Please Wait', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center'})
-    text.anchor.setTo(0.5, 0.5)
+    this.autoSpin = false;
+    this.readyToSpin = true;
 
-    // this.game.stage.backgroundColor = '#462209'
-
-    this.autoSpin = false
-    this.readyToSpin = true
-
-    this.ticketCount = 100000
+    this.ticketCount = 100000;
     this.currentBetAmount = 1;
     this.maxBet = 15;
+    this.totalWinningsText = '';
+
+    let text = this.add.text(this.world.centerX, this.world.centerY - 48, 'Initializing Game ... Please Wait', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center'});
+    text.anchor.setTo(0.5, 0.5);
 
     window.setTimeout(() => { 
       this.buildUI() 
     }, 50);
   }
 
-  addInfoBar (x, y) {
-    let barGroup = this.game.add.group()
-    barGroup.x = x
-    barGroup.y = y
-
-    barGroup.create(0, 0, 'game_and_ui_atlas', 'ui/b1.png')
-    barGroup.create(20, 0, 'game_and_ui_atlas', 'ui/b2.png')
-    let end = barGroup.create(200, 0, 'game_and_ui_atlas', 'ui/b1.png')
-    end.scale.x *= -1
-
-    return barGroup
-  }
 
   buildUI () {
-    console.log('config', config);
 
-    this.game.stage.backgroundColor = '#462209'
+    this.backgroundMusic = this.game.add.audio('background',1,true);
+    this.backgroundMusic.play();
+
+    this.game.stage.backgroundColor = '#462209';
 
     this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'screen.png');
     this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'back.png');
 
-    // this.payoutTable = [
-    //   [15, 45, 200], 
-    //   [5, 20, 100], 
-    //   [45, 200, 1200], 
-    //   [15, 45, 200], 
-    //   [10, 30, 150], 
-    //   [5, 20, 100], 
-    //   [10, 30, 150], 
-    //   [45, 200, 1200]
-    // ];
-
-    // this.paylineCounts = [1, 3, 5, 7, 9]
-    // this.paylineCheckPatterns = [ 
-    //       [0, 0, 0, 0, 0], 
-    //       [0, 0, 1, 0, 0], 
-    //       [0, 1, 2, 1, 0], 
-    //       [1, 0, 0, 0, 1], 
-    //       [1, 1, 1, 1, 1], 
-    //       [1, 2, 2, 2, 1], 
-    //       [2, 1, 0, 1, 2], 
-    //       [2, 2, 1, 2, 2], 
-    //       [2, 2, 2, 2, 2] 
-    //     ];
-
-    // let randomWeights = {1: 0.75, 2: 2.0, 3: 0.08, 4: 0.75, 5: 0.85, 6: 2.0, 7: 0.85, 8: 0.08}
-
-    this.frameColumnOffsets = [224, 384, 544, 704, 864]
-    this.frameRowOffsets = [95, 246, 400]
-
-    this.selectedPaylinesIndex = 0
+    this.selectedPaylinesIndex = 0;
 
     this.configureLogo();
-    this.buildReels(config.weights)
 
-    this.addWinEffects();
+    this.reelManager = new ReelManager(this.game, 78, 110, config.weights);
+    this.playlineManager = new PlaylineManager(this.game, 110, 110, 970, 50);
 
-    this.addPaylines()
-    this.addLineIndicators()
     this.addIdleAnimations();
 
-    this.addActionButtons()
-    this.addPaylineIcons()
+    this.addActionButtons();
+    this.addPaylineIcons();
 
-    this.game.add.sprite(5, 140, 'game_and_ui_atlas', 'ui/tickets_per_line.png')
-    this.ticketsPerLineText = this.game.add.text(65, 190, '', {font: '32px Bangers', fill: '#ffffff', align: 'center'})
-    this.ticketsPerLineText.anchor.setTo(0.5, 0)
-    this.ticketsPerLineText.text = this.currentBetAmount.toString()
+    this.infoBox = new InfoBox(this.game, 5, 140, '', '32px Bangers', '#ffffff');
+    this.infoBox.bind(this, 'currentBetAmount');
 
-    this.game.add.text(635, 695, 'NUMBER OF TICKETS', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center', fontWeight: 'bold'}).anchor.setTo(0.5, 0)
+    this.infoBar = new InfoBar(this.game, 535, 720, '', '24px Bangers', '#ffffff');
+    this.infoBar.bind(this, 'ticketCount');
+    
+    this.announcementContainer = new Announcement(this.game, 485, 590, 'YOU WON!', '24px Bangers', '#3399ff');
+    this.announcementContainer.bind(this, 'totalWinningsText');
 
-    this.addInfoBar(535, 720)
-    this.ticketCountText = this.game.add.text(635, 715, '', {font: '24px Bangers', fill: '#ffffff', align: 'center'})
-    this.ticketCountText.text = this.ticketCount.toString()
-    this.ticketCountText.anchor.setTo(0.5, 0)
-
-    // TODO: Add animations for tablo
-    this.tablo = this.game.add.sprite(485, 590, 'game_and_ui_atlas', 'ui/tablo.png')
-    this.tablo.visible = false
-
-    // TODO: Add Mega Win animations
-    this.totalWinningsTextHeader = this.game.add.text(628, 610, 'YOU WON!', {font: '24px Bangers', fill: '#3399ff', align: 'center'})
-    this.totalWinningsTextHeader.anchor.setTo(0.5, 0)
-    this.totalWinningsTextHeader.visible = false
-
-    this.totalWinningsText = this.game.add.text(628, 640, '11111 Tickets', {font: '24px Bangers', fill: '#3399ff', align: 'center'})
-    this.totalWinningsText.anchor.setTo(0.5, 0)
-    this.totalWinningsText.visible = false
+    this.doubleDownIcon = this.game.add.sprite(890, 700, 'game_and_ui_atlas', 'ui/x2.png');
+    this.doubleDownIcon.visible = false;
   }
 
   addIdleAnimations() {
@@ -141,33 +85,17 @@ export default class extends Phaser.State {
     effect.animations.add('pers-static', names, 8, true, false)
     effect.animations.play('pers-static')
     effect.visible = true
-  }
 
-  addWinEffects() {
-    // create 5 frame sprites and win effects
-    this.winFrames = []
-    this.winEffects = []
 
-    for (let frameIndex = 0; frameIndex < 5; frameIndex++) {
-      let sprite = this.game.add.sprite(0, 0, 'game_and_ui_atlas', 'frame.png')
-      sprite.visible = false
-
-      this.winFrames.push(sprite)
-
-      let effect = this.game.add.sprite(0, 0, 'animation-textures-atlas', 'win_effect/win_effect_87.png')
-      //
-      let names = []
-      for (let i = 136; i >= 87; i--) {
-        names.push('win_effect/win_effect_' + i + '.png')
-      }
-
-      effect.animations.add('win', names, 20, true, false)
-      effect.blendMode = PIXI.blendModes.ADD
-
-      effect.visible = false
-      this.winEffects.push(effect)
+    let fireeffect = this.game.add.sprite(150, 550, 'animation-textures-atlas', 'fire/fire_00.png');
+    let firenames = []
+    for (let i = 1; i < 11; i++) {
+      firenames.push('fire/fire_0' + i + '.png')
     }
 
+    fireeffect.animations.add('fire-static', firenames, 8, true, false)
+    fireeffect.animations.play('fire-static')
+    fireeffect.visible = true
   }
 
   configureLogo() {
@@ -185,42 +113,6 @@ export default class extends Phaser.State {
     this.logoAnimation.animations.play('logo')
   }
 
-  buildReels (randomWeights) {
-    this.reels = []
-    for (let i = 1; i <= reelCount; i++) {
-      let reel = new Reel(this.game, 78 + (i * 160), 110, reelCellCount, visibleCells, randomWeights, 'reel' + i)
-      this.game.add.existing(reel)
-      this.reels.push(reel)
-    }
-  }
-
-  addLineIndicators () {
-    this.lineIndicators = []
-
-    for(let i=1; i<10; i++) {
-      let leftIndicator = new Indicator(this.game, 110, 120 + ((i - 1) * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
-      let rightIndicator = new Indicator(this.game, 1080, 120 + ((i - 1) * 50), 'game_and_ui_atlas', 'ui/'+i+'.png', 'ui/'+i+'_inactive.png')
-      this.game.add.existing(leftIndicator)
-      this.game.add.existing(rightIndicator)
-      this.lineIndicators.push({left: leftIndicator, right: rightIndicator})
-  
-    }    
-  }
-
-  addPaylines () {
-    this.playlines = []
-    let offsets = [20, 20, 20, -100, 20, 20, -270, -144, 20]
-
-    for(let i =0; i < 9; i++) {
-      console.log('ui/winlines/'+(i+1)+'.png');
-
-      let playline = this.game.add.sprite(148, 120 + (i*50) + offsets[i], 'game_and_ui_atlas', 'ui/winlines/'+(i+1)+'.png')
-      playline.visible = false
-      this.playlines.push(playline)
-  
-    }
-  }
-
   addActionButtons () {
     this.game.add.button(1100, 680, 'game_and_ui_atlas', () => { if (this.readyToSpin) this.spin() }, this, 'ui/start_btn.png', 'ui/start_btn.png', 'ui/start_active_btn.png', 'ui/start_btn.png')
     this.game.add.button(200, 760, 'game_and_ui_atlas', () => { this.incrementLines() }, this, 'ui/lines.png', 'ui/lines.png', 'ui/lines_active.png', 'ui/lines.png')
@@ -232,9 +124,10 @@ export default class extends Phaser.State {
   }
 
   doubleDown () {
-    this.isDoubleDown = true
+    this.isDoubleDown = ~this.isDoubleDown;
 
-    // show double down icon
+    // TODO: show double down icon
+    this.doubleDownIcon.visible = this.isDoubleDown;
   }
 
   incrementBet () {
@@ -242,12 +135,10 @@ export default class extends Phaser.State {
     if (this.currentBetAmount > this.maxBet) {
       this.currentBetAmount = this.maxBet
     }
-
-    this.ticketsPerLineText.text = this.currentBetAmount.toString()
   }
+
   betMax () {
-    this.currentBetAmount = this.maxBet
-    this.ticketsPerLineText.text = this.currentBetAmount.toString()
+    this.currentBetAmount = this.maxBet;
   }
 
   addPaylineIcons () {
@@ -286,14 +177,10 @@ export default class extends Phaser.State {
   }
 
   spin () {
-    this.tablo.visible = false
-    this.totalWinningsTextHeader.visible = false
-    this.totalWinningsText.visible = false
+    this.announcementContainer.hide();
     this.logoAnimation.visible = false
 
-    for (let i = 0; i < reelCount; i++) {
-      this.reels[i].start()
-    }
+    this.reelManager.spin();
 
     this.spinning = true
 
@@ -303,89 +190,92 @@ export default class extends Phaser.State {
       payLinesIndex: this.selectedPaylinesIndex
     }
 
-    this.ticketCount -= this.currentBet.amount
-    this.ticketCountText.text = this.ticketCount.toString()
+    this.ticketCount -= ((this.currentBet.amount) * (this.currentBet.double ? 2 : 1));
+    this.playlineManager.clear();
 
-    for (let lineIndex = 0; lineIndex < this.lineIndicators.length; lineIndex++) {
-      this.lineIndicators[lineIndex].left.setActive(false)
-      this.lineIndicators[lineIndex].right.setActive(false)
-
-      this.playlines[lineIndex].visible = false
-    }
-
-    this.showResults = false
-    this.readyToSpin = false
-    this.hideFrames()
+    this.readyToShowResults = false;
+    this.readyToSpin = false;
+    this.reelManager.hideFrames();
 
     if (!this.autoSpin) {
-      this.currentBetAmount = 1
-      this.ticketsPerLineText.text = this.currentBetAmount.toString()
+      // TODO: Evaluate whether we want to reset the bet each spin?
+      this.currentBetAmount = 1;
     }
+  }
+
+  updateReels() {
+    
+    // we are done, so let's stop spinning
+    if (this.reelManager.isReady()) {
+
+      this.spinning = false
+      this.readyToShowResults = true
+
+      this.currentPayline = 0
+      this.lastUpdate = 0
+
+      // there is always one payline so check that first
+      let matchCount = this.checkPayLine(config.paylineCheckPatterns[this.currentPayline]);
+
+      // if we have three or more
+      if (matchCount > 1) {
+        this.showWinResults(matchCount, config.paylineCheckPatterns[this.currentPayline]);
+        this.lastUpdate = this.game.time.now
+      }
+
+      this.updateScore();
+    }
+  }
+
+  showResults() {
+    let winLines = this.getWinLines()
+
+    if (winLines === 0 && this.autoSpin) {
+      this.readyToShowResults = false;
+
+      // if no winner and we are on auto spin
+      // time to spin again
+      window.setTimeout(() => {
+        this.readyToSpin = true;
+        this.spin();
+      }, 1500);
+    }
+
+    // cycle through each result
+    if (this.game.time.now - this.lastUpdate > 1500) {
+
+      // we have more than one win line
+      if (winLines > 1) {
+        this.reelManager.hideFrames();
+        this.playlineManager.displayPayLine(this.currentPayline, false);
+      }
+
+      this.currentPayline += 1
+
+      if (this.currentPayline >= config.paylineCounts[this.currentBet.payLinesIndex]) {
+        this.currentPayline = 0
+
+        // we have cycled through once, so ready to spin now
+        this.readyToSpin = true
+      }
+
+      let matchCount = this.checkPayLine(config.paylineCheckPatterns[this.currentPayline])
+
+      // if we have 3 or more of the same
+      if (matchCount > 1) {
+        this.showWinResults(matchCount, config.paylineCheckPatterns[this.currentPayline])
+        this.lastUpdate = this.game.time.now
+      }
+    }
+
   }
 
   update () {
     if (this.spinning) {
-      let reelsReady = _.map(this.reels, (r) => { return r.readyForScore ? 1 : 0 }).reduce((m, n) => { return m + n }, 0)
-      if (reelsReady === reelCount) {
-        this.spinning = false
-        this.showResults = true
+      this.updateReels();
+    } else if (this.readyToShowResults) {
 
-        this.currentPayline = 0
-        this.lastUpdate = 0
-
-        // there is always one payline so check that first
-        let matchCount = this.checkPayLine(config.paylineCheckPatterns[this.currentPayline])
-
-        // if we have three or more
-        if (matchCount > 1) {
-          this.showWinResults(matchCount, config.paylineCheckPatterns[this.currentPayline])
-          this.lastUpdate = this.game.time.now
-        }
-
-        this.updateScore()
-
-        // this.idlePerson.animations.stop()
-      }
-    } else if (this.showResults) {
-      let winLines = this.getWinLines()
-
-      if (winLines === 0 && this.autoSpin) {
-        this.showResults = false;
-
-        window.setTimeout(() => {
-          this.readyToSpin = true;
-          this.spin();
-        }, 1500);
-
-        //this.readyToSpin = true
-        //this.spin()
-      }
-
-      if (this.game.time.now - this.lastUpdate > 1500) {
-
-        // we have more than one win line
-        if (winLines > 1) {
-          this.hideFrames()
-          this.displayPayLine(this.currentPayline, false)
-        }
-
-        this.currentPayline += 1
-
-        if (this.currentPayline >= config.paylineCounts[this.currentBet.payLinesIndex]) {
-          this.currentPayline = 0
-
-          // we have cycled through once, so ready to spin now
-          this.readyToSpin = true
-        }
-
-        let matchCount = this.checkPayLine(config.paylineCheckPatterns[this.currentPayline])
-
-        // if we have 3 or more of the same
-        if (matchCount > 1) {
-          this.showWinResults(matchCount, config.paylineCheckPatterns[this.currentPayline])
-          this.lastUpdate = this.game.time.now
-        }
-      }
+      this.showResults();
     }
   }
 
@@ -407,11 +297,12 @@ export default class extends Phaser.State {
     let totalWinnings = 0
 
     let displayCells = []
-    for (let reelIndex = 0; reelIndex < this.reels.length; reelIndex++) {
-      displayCells.push(this.reels[reelIndex].getDisplayedCells())
+    for (let reelIndex = 0; reelIndex < this.reelManager.getNumReels(); reelIndex++) {
+      displayCells.push(this.reelManager.getDisplayedCells(reelIndex));
     }
 
-    let betAmount = (this.currentBet.amount / config.paylineCounts[this.currentBet.payLinesIndex])
+    let betAmount = ((this.currentBet.amount / config.paylineCounts[this.currentBet.payLinesIndex]) * (this.isDoubleDown ? 2 : 1));
+
     for (let i = 0; i < config.paylineCounts[this.currentBet.payLinesIndex]; i++) {
       let matchCount = this.checkPayLine(config.paylineCheckPatterns[i])
 
@@ -425,57 +316,30 @@ export default class extends Phaser.State {
     }
 
     if (totalWinnings > 0) {
-      this.totalWinningsText.text = totalWinnings.toString() + ' TICKETS'
-      this.tablo.visible = true
-      this.totalWinningsTextHeader.visible = true
-      this.totalWinningsText.visible = true
+      this.totalWinningsText = totalWinnings.toString() + ' TICKETS'
 
+      this.announcementContainer.show();
       this.logoAnimation.visible = true
     }
 
     this.ticketCount += Math.ceil(totalWinnings)
-    this.ticketCountText.text = this.ticketCount.toString()
-  }
-
-  hideFrames () {
-    for (let i = 0; i < 5; i++) {
-      this.winFrames[i].visible = false
-      this.winEffects[i].visible = false
-    }
   }
 
   showWinResults (matchCount, indexes) {
-    this.displayPayLine(this.currentPayline, true)
-
-    for (let i = 0; i < (matchCount + 1); i++) {
-      this.winFrames[i].visible = true
-      this.winFrames[i].x = this.frameColumnOffsets[i]
-      this.winFrames[i].y = this.frameRowOffsets[indexes[i]]
-
-      this.winEffects[i].visible = true
-      this.winEffects[i].animations.play('win')
-      this.winEffects[i].x = this.frameColumnOffsets[i] + 20
-      this.winEffects[i].y = this.frameRowOffsets[indexes[i]] + 20
-    }
-  }
-
-  displayPayLine (index, state) {
-    // also activate payline
-    this.lineIndicators[index].left.setActive(state)
-    this.lineIndicators[index].right.setActive(state)
-    this.playlines[index].visible = state
+    this.playlineManager.displayPayLine(this.currentPayline, true);
+    this.reelManager.showMatches(matchCount, indexes);
   }
 
   checkPayLine (indexes) {
     let displayCells = []
-    for (let reelIndex = 0; reelIndex < this.reels.length; reelIndex++) {
-      displayCells.push(this.reels[reelIndex].getDisplayedCells())
+    for (let reelIndex = 0; reelIndex < this.reelManager.getNumReels(); reelIndex++) {
+      displayCells.push(this.reelManager.getDisplayedCells(reelIndex));
     }
 
     let lastCell = displayCells[0][indexes[0]]
 
     let matchCount = 0
-    for (let i = 1; i < this.reels.length; i++) {
+    for (let i = 1; i < this.reelManager.getNumReels(); i++) {
       if (lastCell !== displayCells[i][indexes[i]]) {
         break
       }

@@ -1,6 +1,4 @@
-/**
- * Created by Monkey on 9/10/2017.
- */
+
 import Phaser from 'phaser'
 
 export default class extends Phaser.Sprite {

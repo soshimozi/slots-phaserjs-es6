@@ -32,6 +32,8 @@ export default class extends Phaser.State {
 
     this.game.load.script('BlurY', 'https://cdn.rawgit.com/photonstorm/phaser-ce/master/filters/BlurY.js')
 
+    this.game.load.audio('background', [require('../assets/music/background.mp3')]);
+
     let text = this.add.text(this.world.centerX, this.world.centerY - 24, 'Loading Textures ...', {font: '16px Libre Franklin', fill: '#ffffff', align: 'center'})
     text.anchor.setTo(0.5, 0.5)
   }
